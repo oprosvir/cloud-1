@@ -1,8 +1,32 @@
-version: "3.8"
-
 services:
+  # -------------------------------------------------------
+  # 1. Traefik - Reverse Proxy & SSL Manager
+  # -------------------------------------------------------
+  traefik:
+    container_name: traefik
+    image: traefik:v3.7
+    restart: always
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - frontend
+
+  # -------------------------------------------------------
+  # 2. MariaDB - Database
+  # -------------------------------------------------------
   db:
-    image: mariadb:10.11
+    container_name: mariadb
+    image: mariadb:11.8
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root_password
@@ -11,19 +35,42 @@ services:
       MYSQL_PASSWORD: wp_password
     volumes:
       - db_data:/var/lib/mysql
+    networks:
+      - backend
 
+  # -------------------------------------------------------
+  # 3. WordPress - Web Application
+  # -------------------------------------------------------
   wordpress:
+    container_name: wordpress
     image: wordpress:latest
     restart: always
-    ports:
-      - "80:80"
     environment:
       WORDPRESS_DB_HOST: db
       WORDPRESS_DB_USER: wp_user
       WORDPRESS_DB_PASSWORD: wp_password
       WORDPRESS_DB_NAME: wordpress
+    volumes:
+      - wp_data:/var/www/html
     depends_on:
       - db
+    networks:
+      - frontend
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=frontend"
+      - "traefik.http.routers.wordpress.rule=HostRegexp(`.+`)"
+      - "traefik.http.routers.wordpress.entrypoints=websecure"
+      - "traefik.http.routers.wordpress.tls=true"
+      - "traefik.http.services.wordpress.loadbalancer.server.port=80"
 
 volumes:
   db_data:
+  wp_data:
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
