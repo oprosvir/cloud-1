@@ -19,7 +19,7 @@ services:
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
     networks:
-      - frontend
+      - cloud
 
   # -------------------------------------------------------
   # 2. MariaDB - Database
@@ -36,7 +36,7 @@ services:
     volumes:
       - db_data:/var/lib/mysql
     networks:
-      - backend
+      - cloud
 
   # -------------------------------------------------------
   # 3. WordPress - Web Application
@@ -55,11 +55,9 @@ services:
     depends_on:
       - db
     networks:
-      - frontend
-      - backend
+      - cloud
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=frontend"
       - "traefik.http.routers.wordpress.rule=HostRegexp(`.+`)"
       - "traefik.http.routers.wordpress.entrypoints=websecure"
       - "traefik.http.routers.wordpress.tls=true"
@@ -70,7 +68,5 @@ volumes:
   wp_data:
 
 networks:
-  frontend:
-    driver: bridge
-  backend:
+  cloud:
     driver: bridge
