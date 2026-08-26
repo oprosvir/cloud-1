@@ -1,0 +1,5 @@
+- name: Test SSH connection and Ansible setup
+  hosts: web
+  tasks:
+    - name: Ping the server
+      ansible.builtin.ping:
