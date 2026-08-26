@@ -1,5 +1,15 @@
-- name: Test SSH connection and Ansible setup
+- name: Deploy Cloud1 project
   hosts: web
+  become: true
   tasks:
-    - name: Ping the server
-      ansible.builtin.ping:
+    - name: Create deployment directory
+      ansible.builtin.file:
+        path: /opt/cloud1
+        state: directory
+        mode: '0755'
+
+    - name: Render docker-compose.yml from template
+      ansible.builtin.template:
+        src: templates/docker-compose.yml.j2
+        dest: /opt/cloud1/docker-compose.yml
+        mode: '0600'
