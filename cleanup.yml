@@ -1,0 +1,29 @@
+---
+- name: Cleanup Project Infrastructure
+  hosts: web
+  become: true
+
+  vars:
+    project_dir: /opt/cloud1
+
+  tasks:
+    - name: Stop and remove Docker Compose services
+      community.docker.docker_compose_v2:
+        project_src: "{{ project_dir }}"
+        state: absent
+        remove_volumes: true # set to false to keep data
+      ignore_errors: true
+
+    - name: Prune unused Docker resources
+      community.docker.docker_prune:
+        containers: true
+        images: true
+        images_filters:
+          dangling: false
+        networks: true
+        volumes: false
+
+    - name: Remove project directory
+      ansible.builtin.file:
+        path: "{{ project_dir }}"
+        state: absent

@@ -1,15 +1,45 @@
-- name: Deploy Cloud1 project
+---
+- name: Deploy Infrastructure and Launch Services
   hosts: web
   become: true
+
+  vars:
+      project_dir: /opt/cloud1
+
   tasks:
+    - name: Install Docker and Compose V2
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose-v2
+        state: present
+        update_cache: true
+
+    - name: Ensure Docker is running
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Add user to docker group
+      ansible.builtin.user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: true
+
     - name: Create deployment directory
       ansible.builtin.file:
-        path: /opt/cloud1
+        path: "{{ project_dir }}"
         state: directory
         mode: '0755'
 
     - name: Render docker-compose.yml from template
       ansible.builtin.template:
         src: templates/docker-compose.yml.j2
-        dest: /opt/cloud1/docker-compose.yml
-        mode: '0600'
+        dest: "{{ project_dir }}/docker-compose.yml"
+        mode: '0644'
+
+    - name: Start Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: "{{ project_dir }}"
+        state: present
