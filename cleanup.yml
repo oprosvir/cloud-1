@@ -7,11 +7,17 @@
     project_dir: /opt/cloud1
 
   tasks:
+    - name: Check if project directory exists
+      ansible.builtin.stat:
+        path: "{{ project_dir }}"
+      register: dir_check
+
     - name: Stop and remove Docker Compose services
       community.docker.docker_compose_v2:
         project_src: "{{ project_dir }}"
         state: absent
-        remove_volumes: true # set to false to keep data
+        remove_volumes: true
+      when: dir_check.stat.exists and dir_check.stat.isdir
       ignore_errors: true
 
     - name: Prune unused Docker resources
